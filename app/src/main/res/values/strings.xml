@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">FirebaseChatDemoTutorial</string>
+    <string name="please_wait">Please wait</string>
+    <string name="logout">Log out</string>
+    <string name="are_you_sure">Are you sure</string>
+    <string name="cancel">Cancel</string>
+    <string name="type_a_message">Type a message</string>
+</resources>

@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "765342748707",
+    "firebase_url": "https://fir-chatdemotutorial.firebaseio.com",
+    "project_id": "fir-chatdemotutorial",
+    "storage_bucket": "fir-chatdemotutorial.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:765342748707:android:a61d0c138f9c6f5d",
+        "android_client_info": {
+          "package_name": "com.firebasechatdemotutorial"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "765342748707-hc2v6bk4c0vicu3v9oa6mk33da59elkl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.firebasechatdemotutorial",
+            "certificate_hash": "758544bcef5dc2eaad62e6986f6691802bc67727"
+          }
+        },
+        {
+          "client_id": "765342748707-hi2vsetj774kk3u05e9lpapf8b5vcifv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBW5Pg1cDvejQgb43WHZxGsJAyFK_QHz28"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "765342748707-hi2vsetj774kk3u05e9lpapf8b5vcifv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
