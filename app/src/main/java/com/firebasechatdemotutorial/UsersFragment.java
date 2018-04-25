@@ -93,29 +93,39 @@ public class UsersFragment extends Fragment implements SwipeRefreshLayout.OnRefr
     }
 
     public void getAllUsersFromFirebase() {
+
         FirebaseDatabase.getInstance().getReference().child(Constants.ARG_USERS).addListenerForSingleValueEvent(new ValueEventListener() {
+
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+
                 Iterator<DataSnapshot> dataSnapshots = dataSnapshot.getChildren().iterator();
+
                 List<User> users = new ArrayList<>();
+
                 while (dataSnapshots.hasNext()) {
+
                     DataSnapshot dataSnapshotChild = dataSnapshots.next();
                     User user = dataSnapshotChild.getValue(User.class);
+
                     if (!TextUtils.equals(user.uid, FirebaseAuth.getInstance().getCurrentUser().getUid())) {
                         users.add(user);
                     }
                 }
+
                 onGetAllUsersSuccess(users);
             }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
+
                 onGetAllUsersFailure(databaseError.getMessage());
             }
         });
     }
 
     private void onGetAllUsersFailure(String message) {
+
         mSwipeRefreshLayout.post(new Runnable() {
             @Override
             public void run() {
@@ -126,6 +136,7 @@ public class UsersFragment extends Fragment implements SwipeRefreshLayout.OnRefr
     }
 
     private void onGetAllUsersSuccess(List<User> users) {
+
         mSwipeRefreshLayout.post(new Runnable() {
             @Override
             public void run() {
@@ -139,6 +150,7 @@ public class UsersFragment extends Fragment implements SwipeRefreshLayout.OnRefr
 
     @Override
     public void onItemClicked(RecyclerView recyclerView, int position, View v) {
+
         ChatActivity.startActivity(getActivity(),
                 mUserListingRecyclerAdapter.getUser(position).email,
                 mUserListingRecyclerAdapter.getUser(position).uid,

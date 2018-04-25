@@ -98,6 +98,7 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
     }
 
     private void getMessage(String senderUid, String receiverUid) {
+
         final String room_type_1 = senderUid + "_" + receiverUid;
         final String room_type_2 = receiverUid + "_" + senderUid;
 
@@ -106,8 +107,11 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
         databaseReference.child(Constants.ARG_CHAT_ROOMS).getRef().addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+
                 if (dataSnapshot.hasChild(room_type_1)) {
+
                     Log.e("TAG", "getMessageFromFirebaseUser: " + room_type_1 + " exists");
+
                     FirebaseDatabase.getInstance()
                             .getReference()
                             .child(Constants.ARG_CHAT_ROOMS)
@@ -213,36 +217,47 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
         String sender = FirebaseAuth.getInstance().getCurrentUser().getEmail();
         String senderUid = FirebaseAuth.getInstance().getCurrentUser().getUid();
         String receiverFirebaseToken = getArguments().getString(Constants.ARG_FIREBASE_TOKEN);
+
         Chat chat = new Chat(sender,
                 receiver,
                 senderUid,
                 receiverUid,
                 message,
                 System.currentTimeMillis());
-        sendMessageToUser(getActivity().getApplicationContext(),
+
+        sendMessageToUser(getActivity(),
                 chat,
                 receiverFirebaseToken);
     }
 
     private void sendMessageToUser(Context applicationContext, final Chat chat, final String receiverFirebaseToken) {
+
         final String room_type_1 = chat.senderUid + "_" + chat.receiverUid;
+
         final String room_type_2 = chat.receiverUid + "_" + chat.senderUid;
 
         final DatabaseReference databaseReference = FirebaseDatabase.getInstance().getReference();
 
         databaseReference.child(Constants.ARG_CHAT_ROOMS).getRef().addListenerForSingleValueEvent(new ValueEventListener() {
+
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+
                 if (dataSnapshot.hasChild(room_type_1)) {
                     Log.e("TAG", "sendMessageToFirebaseUser: " + room_type_1 + " exists");
                     databaseReference.child(Constants.ARG_CHAT_ROOMS).child(room_type_1).child(String.valueOf(chat.timestamp)).setValue(chat);
+
                 } else if (dataSnapshot.hasChild(room_type_2)) {
                     Log.e("TAG", "sendMessageToFirebaseUser: " + room_type_2 + " exists");
                     databaseReference.child(Constants.ARG_CHAT_ROOMS).child(room_type_2).child(String.valueOf(chat.timestamp)).setValue(chat);
+
                 } else {
+
                     Log.e("TAG", "sendMessageToFirebaseUser: success");
                     databaseReference.child(Constants.ARG_CHAT_ROOMS).child(room_type_1).child(String.valueOf(chat.timestamp)).setValue(chat);
+
                     getMessage(chat.senderUid,chat.receiverUid);
+
                 }
                 // send push notification to the receiver
                 /*sendPushNotificationToReceiver(chat.sender,
