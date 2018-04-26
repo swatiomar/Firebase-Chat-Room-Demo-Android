@@ -23,14 +23,28 @@
             android:id="@+id/addImagebutton"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.5"
+            android:layout_weight="0.4"
+            android:src="@android:drawable/ic_menu_add" />
+
+        <ImageButton
+            android:id="@+id/addAudioButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.3"
+            android:src="@android:drawable/ic_menu_add" />
+
+        <ImageButton
+            android:id="@+id/addVideoButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="0.3"
             android:src="@android:drawable/ic_menu_add" />
 
         <ImageButton
             android:id="@+id/addLocationButton"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="0.5"
+            android:layout_weight="0.3"
             android:src="@android:drawable/ic_menu_add" />
 
         <EditText
@@ -39,7 +53,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
             android:layout_margin="@dimen/margin_small"
-            android:layout_weight="3"
+            android:layout_weight="2.7"
             android:background="@drawable/rounded_rect_bg"
             android:hint="@string/type_a_message"
             android:imeOptions="actionSend"

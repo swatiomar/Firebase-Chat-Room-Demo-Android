@@ -24,7 +24,23 @@
         android:padding="@dimen/padding_small"
         android:textAppearance="?android:attr/textAppearanceMedium"
         android:textColor="#FF00DD"
+        android:visibility="visible"
         tools:text="Noice man !" />
+
+    <ImageView
+        android:id="@+id/image_view_chat_message"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="20dp"
+        android:layout_marginStart="20dp"
+        android:layout_toLeftOf="@+id/text_view_user_alphabet"
+        android:layout_toStartOf="@+id/text_view_user_alphabet"
+        android:background="@drawable/chat_rounded_rect_bg"
+        android:padding="@dimen/padding_small"
+        android:src="@mipmap/ic_launcher"
+        android:visibility="gone"
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="#FF00DD" />
 
     <TextView
         android:id="@+id/text_view_user_alphabet"

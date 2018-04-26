@@ -15,5 +15,7 @@ public class Constants {
     public static final String ARG_UID = "uid";
 
 
-    public static final String STORAGE_PATH_UPLOADS = "upload_image";
+    public static final String STORAGE_PATH_IMAGE = "demo_images";
+    public static final String STORAGE_PATH_AUDIO = "demo_audio";
+    public static final String STORAGE_PATH_VIDEO = "demo_video";
 }

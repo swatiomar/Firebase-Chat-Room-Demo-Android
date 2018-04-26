@@ -10,20 +10,25 @@ public class Chat {
     public String senderUid;
     public String receiverUid;
     public String message;
+    public String latitude;
+    public String longitude;
+    public String type;
     public long timestamp;
 
     public Chat() {
 
     }
 
-    public Chat(String sender, String receiver, String senderUid, String receiverUid, String message, long timestamp) {
+    public Chat(String sender, String receiver, String senderUid, String receiverUid, String message, long timestamp, String lat, String log, String type) {
         this.sender = sender;
         this.receiver = receiver;
         this.senderUid = senderUid;
         this.receiverUid = receiverUid;
         this.message = message;
         this.timestamp = timestamp;
-
+        this.latitude = lat;
+        this.longitude = log;
+        this.type = type;
     }
 
 }
