@@ -2,23 +2,30 @@ package com.firebasechatdemotutorial;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.firebasechatdemotutorial.model.Chat;
 import com.firebasechatdemotutorial.util.Constants;
-import com.firebasechatdemotutorial.util.SharedPrefUtil;
+import com.firebasechatdemotutorial.util.TakeImage;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -26,21 +33,33 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.OnProgressListener;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
-import org.greenrobot.eventbus.EventBus;
-
+import java.io.File;
 import java.util.ArrayList;
+
+import static android.app.Activity.RESULT_OK;
+import static com.firebasechatdemotutorial.util.TakeImage.path;
 
 /**
  * Created by mobua01 on 25/4/18.
  */
 
-public class ChatFragment extends Fragment implements TextView.OnEditorActionListener {
+public class ChatFragment extends Fragment implements TextView.OnEditorActionListener, View.OnClickListener {
 
+    private static final int GALLERY_IMAGE_RESULT = 22;
     private ProgressDialog mProgressDialog;
     private RecyclerView mRecyclerViewChat;
     private EditText mETxtMessage;
     private ChatRecyclerAdapter mChatRecyclerAdapter;
+    private ImageButton mAddImageButton;
+    private File filePath;
+    private FirebaseStorage firebaseStorage;
+    private StorageReference sRef;
+    private String image;
 
     public static ChatFragment newInstance(String receiver,
                                            String receiverUid,
@@ -77,12 +96,20 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
     private void bindViews(View view) {
         mRecyclerViewChat = (RecyclerView) view.findViewById(R.id.recycler_view_chat);
         mETxtMessage = (EditText) view.findViewById(R.id.edit_text_message);
+        mAddImageButton = (ImageButton) view.findViewById(R.id.addImagebutton);
     }
 
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        firebaseStorage = FirebaseStorage.getInstance();
+        initListener();
         init();
+    }
+
+    private void initListener() {
+
+        mAddImageButton.setOnClickListener(this);
     }
 
     private void init() {
@@ -205,6 +232,7 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
     public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
         if (actionId == EditorInfo.IME_ACTION_SEND) {
             sendMessage();
+            mETxtMessage.setText("");
             return true;
         }
         return false;
@@ -256,7 +284,7 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
                     Log.e("TAG", "sendMessageToFirebaseUser: success");
                     databaseReference.child(Constants.ARG_CHAT_ROOMS).child(room_type_1).child(String.valueOf(chat.timestamp)).setValue(chat);
 
-                    getMessage(chat.senderUid,chat.receiverUid);
+                    getMessage(chat.senderUid, chat.receiverUid);
 
                 }
                 // send push notification to the receiver
@@ -270,9 +298,106 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
-                Toast.makeText(getActivity(), "Unable to send message"+databaseError.getMessage(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(getActivity(), "Unable to send message" + databaseError.getMessage(), Toast.LENGTH_SHORT).show();
             }
         });
     }
 
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            path = data.getStringExtra("filePath");
+            if (path != null & !path.isEmpty()) {
+                Log.i("Gallery File--->", path);
+
+                filePath = new File(data.getStringExtra("filePath"));
+
+                if (filePath.exists()) {
+
+                    Log.d("image", filePath + "");
+
+                    uploadFileToFirebase(filePath);
+                }
+            }
+        } else {
+            path = "";
+            Toast toast = Toast.makeText(getActivity(), "Image Not exists!", Toast.LENGTH_SHORT);
+            toast.setGravity(Gravity.CENTER, 0, 0);
+            toast.show();
+        }
+    }
+
+    private void uploadFileToFirebase(File filePath) {
+
+        //getting the storage reference
+        StorageReference storageReference = firebaseStorage.getReference();
+        sRef = storageReference.child("Upload Images").child(Constants.STORAGE_PATH_UPLOADS + System.currentTimeMillis());
+
+        //adding the file to reference
+        sRef.putFile(Uri.fromFile(new File(filePath.toString())))
+                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+
+                        Toast.makeText(getActivity(), "File Uploaded ", Toast.LENGTH_LONG).show();
+
+                        //creating the upload object to store uploaded image details
+                        Upload upload = new Upload("Image uploading", taskSnapshot.getDownloadUrl().toString());
+
+                        getDownloadFile();
+
+                       /* //adding an upload to firebase database
+                        String uploadId = mDatabase.push().getKey();
+                        mDatabase.child(uploadId).setValue(upload);*/
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception exception) {
+                        Toast.makeText(getActivity(), exception.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                })
+                .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                    @Override
+                    public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                        //displaying the upload progress
+                        double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+//                        progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
+                    }
+                });
+    }
+
+
+    private void getDownloadFile() {
+
+        sRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+            @Override
+            public void onSuccess(Uri uri) {
+                // Got the download URL for 'users/me/profile.png'
+                Toast.makeText(getActivity(), "Downloaded Uri" + uri, Toast.LENGTH_SHORT).show();
+                image = uri.toString();
+                Log.d("image jpg", uri.toString());
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+                Toast.makeText(getActivity(), "Failed to Download Uri" + exception.getMessage(), Toast.LENGTH_SHORT).show();
+                // Handle any errors
+            }
+        });
+    }
+
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+
+            case R.id.addImagebutton:
+                Intent intent = new Intent(getActivity(), TakeImage.class);
+                intent.putExtra("from", "gallery");
+                startActivityForResult(intent, GALLERY_IMAGE_RESULT);
+                break;
+        }
+    }
 }
