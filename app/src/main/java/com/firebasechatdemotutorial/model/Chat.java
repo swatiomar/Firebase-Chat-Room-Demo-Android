@@ -19,7 +19,7 @@ public class Chat {
 
     }
 
-    public Chat(String sender, String receiver, String senderUid, String receiverUid, String message, long timestamp, String lat, String log, String type) {
+    public Chat(String sender, String receiver, String senderUid, String receiverUid, String message, long timestamp, String lat, String log) {
         this.sender = sender;
         this.receiver = receiver;
         this.senderUid = senderUid;
@@ -28,7 +28,7 @@ public class Chat {
         this.timestamp = timestamp;
         this.latitude = lat;
         this.longitude = log;
-        this.type = type;
+//        this.type = type;
     }
 
 }

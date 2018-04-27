@@ -2,12 +2,14 @@ package com.firebasechatdemotutorial;
 
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.Gravity;
@@ -18,6 +20,8 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -61,15 +65,9 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
     private File filePath;
     private FirebaseStorage firebaseStorage;
     private StorageReference sRef;
-    private String image;
-    private ImageButton mAddAudioButton;
-    private Uri uri;
-    private String audio;
-    private ImageButton mAddVideoButton;
-    private Uri videoUri;
-    private String video;
-    private ImageButton mAddLocationButton;
-    private String type="";
+    private String type = "";
+    private String typeChoose;
+    private String downloadedFile;
 
     public static ChatFragment newInstance(String receiver,
                                            String receiverUid,
@@ -82,18 +80,6 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
         fragment.setArguments(args);
         return fragment;
     }
-
-   /* @Override
-    public void onStart() {
-        super.onStart();
-        EventBus.getDefault().register(this);
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        EventBus.getDefault().unregister(this);
-    }*/
 
     @Nullable
     @Override
@@ -108,9 +94,6 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
         mETxtMessage = (EditText) view.findViewById(R.id.edit_text_message);
 
         mAddImageButton = (ImageButton) view.findViewById(R.id.addImagebutton);
-        mAddAudioButton = (ImageButton) view.findViewById(R.id.addAudioButton);
-        mAddVideoButton = (ImageButton) view.findViewById(R.id.addVideoButton);
-        mAddLocationButton = (ImageButton) view.findViewById(R.id.addLocationButton);
     }
 
     @Override
@@ -124,9 +107,6 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
     private void initListener() {
 
         mAddImageButton.setOnClickListener(this);
-        mAddAudioButton.setOnClickListener(this);
-        mAddVideoButton.setOnClickListener(this);
-        mAddLocationButton.setOnClickListener(this);
     }
 
     private void init() {
@@ -237,7 +217,7 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
 
     private void onGetMessagesSuccess(Chat chat) {
         if (mChatRecyclerAdapter == null) {
-            mChatRecyclerAdapter = new ChatRecyclerAdapter(getActivity(),new ArrayList<Chat>(),videoUri,image);
+            mChatRecyclerAdapter = new ChatRecyclerAdapter(getActivity(), new ArrayList<Chat>());
             mRecyclerViewChat.setAdapter(mChatRecyclerAdapter);
         }
         mChatRecyclerAdapter.add(chat);
@@ -268,7 +248,7 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
                 senderUid,
                 receiverUid,
                 message,
-                System.currentTimeMillis(),"28.5355","77.3910",type);
+                System.currentTimeMillis(), "28.5355", "77.3910");
 
         sendMessageToUser(getActivity(),
                 chat,
@@ -335,7 +315,7 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
 
                         Log.d("image", filePath + "");
 
-                        uploadFileToFirebase(filePath);
+                        uploadFileToFirebase(filePath, typeChoose, null);
                     }
                 } else {
                     path = "";
@@ -350,11 +330,11 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
                 //TODO AUDIO WORK
                 if (data.getData() != null) {
 
-                    uri = data.getData();
+                    Uri uri = data.getData();
 
                     if (uri != null) {
 
-                        uploadAudioToFirebase();
+                        uploadFileToFirebase(null, typeChoose, uri);
 
                     } else {
 
@@ -372,172 +352,127 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
 
             if (requestCode == VIDEO_RESULT) {
 
-                videoUri = data.getData();
-                uploadVideoToFirebase();
+                Uri videoUri = data.getData();
+                uploadFileToFirebase(null, typeChoose, videoUri);
             }
 
         }
     }
 
-    private void uploadVideoToFirebase() {
+    private void uploadFileToFirebase(File filePath, String typeFile, Uri uri) {
+        if (typeFile.equalsIgnoreCase("image_file")) {
+            //getting the storage reference
+            StorageReference storageReference = firebaseStorage.getReference();
+            sRef = storageReference.child("Upload Images").child(Constants.STORAGE_PATH_IMAGE + System.currentTimeMillis());
 
+            //adding the file to reference
+            sRef.putFile(Uri.fromFile(new File(filePath.toString())))
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
 
-        //getting the storage reference
-        StorageReference storageReference = firebaseStorage.getReference();
-        sRef = storageReference.child("Upload Video").child(Constants.STORAGE_PATH_VIDEO + System.currentTimeMillis());
+                            Toast.makeText(getActivity(), "File Uploaded ", Toast.LENGTH_LONG).show();
 
-        //adding the file to reference
-        sRef.putFile(videoUri)
-                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            //creating the upload object to store uploaded image details
+                            Upload upload = new Upload("Image uploading", taskSnapshot.getDownloadUrl().toString());
 
-                        Toast.makeText(getActivity(), "Video File Uploaded ", Toast.LENGTH_LONG).show();
-
-                        //creating the upload object to store uploaded image details
-                        Upload upload = new Upload("Video uploading", taskSnapshot.getDownloadUrl().toString());
-
-                        getVideoDownloadFile();
-
-                       /* //adding an upload to firebase database
-                        String uploadId = mDatabase.push().getKey();
-                        mDatabase.child(uploadId).setValue(upload);*/
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception exception) {
-                        Toast.makeText(getActivity(), exception.getMessage(), Toast.LENGTH_LONG).show();
-                    }
-                })
-                .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                        //displaying the upload progress
-                        double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-//                        progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
-                    }
-                });
-
-    }
-
-    private void getVideoDownloadFile() {
-
-        sRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-            @Override
-            public void onSuccess(Uri uri) {
-                // Got the download URL for 'users/me/profile.png'
-                Toast.makeText(getActivity(), "Downloaded Video Uri" + uri, Toast.LENGTH_SHORT).show();
-                video = uri.toString();
-                Log.d("video format", uri.toString());
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception exception) {
-                Toast.makeText(getActivity(), "Failed to Download Video Uri" + exception.getMessage(), Toast.LENGTH_SHORT).show();
-                // Handle any errors
-            }
-        });
-
-    }
-
-    private void uploadAudioToFirebase() {
-
-        //getting the storage reference
-        StorageReference storageReference = firebaseStorage.getReference();
-        sRef = storageReference.child("Upload Audio").child(Constants.STORAGE_PATH_AUDIO + System.currentTimeMillis());
-
-        //adding the file to reference
-        sRef.putFile(uri)
-                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-
-                        Toast.makeText(getActivity(), "Audio File Uploaded ", Toast.LENGTH_LONG).show();
-
-                        //creating the upload object to store uploaded image details
-                        Upload upload = new Upload("Audio uploading", taskSnapshot.getDownloadUrl().toString());
-
-                        getAudioDownloadFile();
+                            getDownloadFile();
 
                        /* //adding an upload to firebase database
                         String uploadId = mDatabase.push().getKey();
                         mDatabase.child(uploadId).setValue(upload);*/
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception exception) {
-                        Toast.makeText(getActivity(), exception.getMessage(), Toast.LENGTH_LONG).show();
-                    }
-                })
-                .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                        //displaying the upload progress
-                        double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            Toast.makeText(getActivity(), exception.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    })
+                    .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                            //displaying the upload progress
+                            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
 //                        progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
-                    }
-                });
-    }
+                        }
+                    });
+        } else if (typeFile.equalsIgnoreCase("audio_file")) {//getting the storage reference
+            StorageReference storageReference = firebaseStorage.getReference();
+            sRef = storageReference.child("Upload Audio").child(Constants.STORAGE_PATH_AUDIO + System.currentTimeMillis());
 
-    private void getAudioDownloadFile() {
+            //adding the file to reference
+            sRef.putFile(uri)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
 
-        sRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-            @Override
-            public void onSuccess(Uri uri) {
-                // Got the download URL for 'users/me/profile.png'
-                Toast.makeText(getActivity(), "Downloaded Audio Uri" + uri, Toast.LENGTH_SHORT).show();
-                audio = uri.toString();
-                Log.d("audio format", uri.toString());
-            }
-        }).addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception exception) {
-                Toast.makeText(getActivity(), "Failed to Download Audio Uri" + exception.getMessage(), Toast.LENGTH_SHORT).show();
-                // Handle any errors
-            }
-        });
-    }
+                            Toast.makeText(getActivity(), "Audio File Uploaded ", Toast.LENGTH_LONG).show();
 
-    private void uploadFileToFirebase(File filePath) {
+                            //creating the upload object to store uploaded image details
+                            Upload upload = new Upload("Audio uploading", taskSnapshot.getDownloadUrl().toString());
 
-        //getting the storage reference
-        StorageReference storageReference = firebaseStorage.getReference();
-        sRef = storageReference.child("Upload Images").child(Constants.STORAGE_PATH_IMAGE + System.currentTimeMillis());
-
-        //adding the file to reference
-        sRef.putFile(Uri.fromFile(new File(filePath.toString())))
-                .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-
-                        Toast.makeText(getActivity(), "File Uploaded ", Toast.LENGTH_LONG).show();
-
-                        //creating the upload object to store uploaded image details
-                        Upload upload = new Upload("Image uploading", taskSnapshot.getDownloadUrl().toString());
-
-                        getDownloadFile();
+//                            getAudioDownloadFile();
+                            getDownloadFile();
 
                        /* //adding an upload to firebase database
                         String uploadId = mDatabase.push().getKey();
                         mDatabase.child(uploadId).setValue(upload);*/
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception exception) {
-                        Toast.makeText(getActivity(), exception.getMessage(), Toast.LENGTH_LONG).show();
-                    }
-                })
-                .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
-                    @Override
-                    public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
-                        //displaying the upload progress
-                        double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            Toast.makeText(getActivity(), exception.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    })
+                    .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                            //displaying the upload progress
+                            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
 //                        progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
-                    }
-                });
+                        }
+                    });
+
+        } else if (typeFile.equalsIgnoreCase("video_file")) {//getting the storage reference
+            //getting the storage reference
+            StorageReference storageReference = firebaseStorage.getReference();
+            sRef = storageReference.child("Upload Video").child(Constants.STORAGE_PATH_VIDEO + System.currentTimeMillis());
+
+            //adding the file to reference
+            sRef.putFile(uri)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+
+                            Toast.makeText(getActivity(), "Video File Uploaded ", Toast.LENGTH_LONG).show();
+
+                            //creating the upload object to store uploaded image details
+                            Upload upload = new Upload("Video uploading", taskSnapshot.getDownloadUrl().toString());
+
+//                            getVideoDownloadFile();
+                            getDownloadFile();
+
+                       /* //adding an upload to firebase database
+                        String uploadId = mDatabase.push().getKey();
+                        mDatabase.child(uploadId).setValue(upload);*/
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            Toast.makeText(getActivity(), exception.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+                    })
+                    .addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onProgress(UploadTask.TaskSnapshot taskSnapshot) {
+                            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+//                        progressDialog.setMessage("Uploaded " + ((int) progress) + "%...");
+                        }
+                    });
+        }
     }
 
 
@@ -546,14 +481,16 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
         sRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
             public void onSuccess(Uri uri) {
-                // Got the download URL for 'users/me/profile.png'
-                Toast.makeText(getActivity(), "Downloaded Uri" + uri, Toast.LENGTH_SHORT).show();
-                image = uri.toString();
-                Log.d("image jpg", uri.toString());
+
+                Toast.makeText(getActivity(), "Downloaded \n" + uri, Toast.LENGTH_SHORT).show();
+                downloadedFile = uri.toString();
+                Log.d("uri download", uri.toString());
             }
+
         }).addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception exception) {
+
                 Toast.makeText(getActivity(), "Failed to Download Uri" + exception.getMessage(), Toast.LENGTH_SHORT).show();
                 // Handle any errors
             }
@@ -566,32 +503,77 @@ public class ChatFragment extends Fragment implements TextView.OnEditorActionLis
         switch (v.getId()) {
 
             case R.id.addImagebutton:
-                type = "image";
-                Intent intent = new Intent(getActivity(), TakeImage.class);
-                intent.putExtra("from", "gallery");
-                startActivityForResult(intent, GALLERY_IMAGE_RESULT);
+
+                openAlertDialog();
+
                 break;
 
-            case R.id.addAudioButton:
-                type = "audio";
-                Intent intent_upload = new Intent();
-                intent_upload.setType("audio/*");
-                intent_upload.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(intent_upload, AUDIO_RESULT);
-                break;
-
-            case R.id.addVideoButton:
-                type = "video";
-                Intent intent_video_upload = new Intent();
-                intent_video_upload.setType("video/*");
-                intent_video_upload.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(Intent.createChooser(intent_video_upload, "Select Video"), VIDEO_RESULT);
-                break;
-
-            case R.id.addLocationButton:
-                type = "location";
-               //TODO LOCATION
-                break;
         }
+    }
+
+    private void openAlertDialog() {
+
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(getActivity());
+        LayoutInflater inflater = this.getLayoutInflater();
+        final View dialogView = inflater.inflate(R.layout.custom_dialog, null);
+        dialogBuilder.setView(dialogView);
+
+        final RadioGroup chooseRg = (RadioGroup) dialogView.findViewById(R.id.choose_rg);
+        final RadioButton chooseImage = (RadioButton) dialogView.findViewById(R.id.select_image);
+        final RadioButton chooseAudio = (RadioButton) dialogView.findViewById(R.id.select_audio);
+        final RadioButton chooseVideo = (RadioButton) dialogView.findViewById(R.id.select_video);
+
+        chooseRg.check(chooseRg.getChildAt(0).getId());
+
+        dialogBuilder.setTitle("Custom dialog");
+        dialogBuilder.setMessage("Enter text below");
+        dialogBuilder.setPositiveButton("Done", new DialogInterface.OnClickListener() {
+
+            public void onClick(DialogInterface dialog, int whichButton) {
+
+                if (chooseImage.isChecked()) {
+
+                    typeChoose = "image_file";
+                    Intent intent = new Intent(getActivity(), TakeImage.class);
+                    intent.putExtra("from", "gallery");
+                    startActivityForResult(intent, GALLERY_IMAGE_RESULT);
+                    dialog.dismiss();
+
+                } else if (chooseAudio.isChecked()) {
+
+                    typeChoose = "audio_file";
+                    Intent intent_upload = new Intent();
+                    intent_upload.setType("audio/*");
+                    intent_upload.setAction(Intent.ACTION_GET_CONTENT);
+                    startActivityForResult(intent_upload, AUDIO_RESULT);
+                    dialog.dismiss();
+
+                } else if (chooseVideo.isChecked()) {
+
+                    typeChoose = "video_file";
+                    Intent intent_video_upload = new Intent();
+                    intent_video_upload.setType("video/*");
+                    intent_video_upload.setAction(Intent.ACTION_GET_CONTENT);
+                    startActivityForResult(Intent.createChooser(intent_video_upload, "Select Video"), VIDEO_RESULT);
+                    dialog.dismiss();
+
+                } else {
+
+                    Toast.makeText(getActivity(), "Please select anyone", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+
+        dialogBuilder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+
+            public void onClick(DialogInterface dialog, int whichButton) {
+                //pass
+                dialog.dismiss();
+            }
+        });
+
+        AlertDialog b = dialogBuilder.create();
+
+        b.show();
     }
 }
